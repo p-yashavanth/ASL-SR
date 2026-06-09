@@ -6,21 +6,30 @@ import joblib
 import time
 import threading
 import pyttsx3
+import os
+import zipfile
+
+
 
 from normalize_utils import normalize_landmarks
 
 app = Flask(__name__)
 
 # Load model and labels
-MODEL_PATH = "gesture_model.pkl"
-LABELS_PATH = "labels.pkl"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+MODEL_PATH = os.path.join(BASE_DIR, "gesture_model.pkl")
+LABELS_PATH = os.path.join(BASE_DIR, "labels.pkl")
+ZIP_PATH = os.path.join(BASE_DIR, "gesture_model.zip")
 
 try:
+    if not os.path.exists(MODEL_PATH):
+        print("Extracting gesture_model.zip...")
+        with zipfile.ZipFile(ZIP_PATH, "r") as zip_ref:
+            zip_ref.extractall(BASE_DIR)
+
     model = joblib.load(MODEL_PATH)
-    # Cast to plain Python strings to avoid np.str_ display issues
     labels = [str(l) for l in joblib.load(LABELS_PATH)]
-    print("Model and labels loaded successfully.")
-    print("Classes:", labels)
 except Exception as e:
     print(f"Error loading model files: {e}")
     exit(1)
@@ -254,5 +263,5 @@ def action():
         return jsonify({"status": "success", "sentence": state["sentence"]})
 
 if __name__ == '__main__':
-    # Run the web server on local dev port 5000
-    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
